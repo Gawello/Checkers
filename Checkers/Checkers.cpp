@@ -16,7 +16,9 @@ const char PLAYER2 = 'o'; // Symbol pionków gracza 2
 void initializeBoard(std::vector<std::vector<char>>& board);
 void printBoard(const std::vector<std::vector<char>>& board);
 bool makeMove(std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player);
+bool isMoveValid(std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player);
 std::pair<int, int> parsePosition(const std::string& position);
+
 
 int main() {
     std::vector<std::vector<char>> board(SIZE, std::vector<char>(SIZE));
@@ -32,12 +34,14 @@ int main() {
         std::cout << "Gracz " << (player1Turn ? "1 [x]" : "2 [o]") << " - podaj ruch (np. a3 b4): ";
         std::cin >> from >> to;
 
-        // Wykonanie ruchu
-        if (!makeMove(board, from, to, player1Turn ? PLAYER1 : PLAYER2)) {
-            std::cout << "Nieprawidłowy ruch! Spróbuj ponownie." << std::endl;
+        // Sprawdzenie czy ruch może zostać wykonany (jeżeli nie, pozwala na powtórzenie akcji
+        if (!isMoveValid(board, from, to, player1Turn ? PLAYER1 : PLAYER2)) {
+            std::cout << "Gracz " << (player1Turn ? "1 [x]" : "2 [o]") << " - podaj ruch (np. a3 b4): ";
             continue;
         }
 
+        // Wykonanie ruchu
+        makeMove(board, from, to, player1Turn ? PLAYER1 : PLAYER2);
         // Zmiana gracza
         player1Turn = !player1Turn;
     }
@@ -45,6 +49,7 @@ int main() {
     return 0;
 }
 
+// Inicjalizacja szachwonicy
 void initializeBoard(std::vector<std::vector<char>>& board) {
     for (int i = 0; i < SIZE; ++i) {
         for (int j = 0; j < SIZE; ++j) {
@@ -60,6 +65,7 @@ void initializeBoard(std::vector<std::vector<char>>& board) {
     }
 }
 
+// Wyświetlanie szachownicy
 void printBoard(const std::vector<std::vector<char>>& board) {
     std::cout << "  ";
     for (char c = 'a'; c < 'a' + SIZE; ++c) std::cout << c << ' ';
@@ -78,6 +84,36 @@ void printBoard(const std::vector<std::vector<char>>& board) {
     for (char c = 'a'; c < 'a' + SIZE; ++c) std::cout << c << ' ';
     std::cout << std::endl;
 }
+
+
+// Funkcja sprawdzająca poprawność ruchu w aktualnej sytuacji
+bool isMoveValid(std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player) {
+    auto fromPos = parsePosition(from);
+    auto toPos = parsePosition(to);
+
+    int fromRow = fromPos.first;
+    int fromCol = fromPos.second;
+    int toRow = toPos.first;
+    int toCol = toPos.second;
+
+    // Sprawdzanie, czy ruch jest na planszy
+    if (fromRow < 0 || fromRow >= SIZE || fromCol < 0 || fromCol >= SIZE ||
+        toRow < 0 || toRow >= SIZE || toCol < 0 || toCol >= SIZE) {
+        std::cout << "Ruch poza planszą!" << std::endl;
+        return false;
+    }
+
+    // Sprawdzanie, czy ruch jest na przemian
+    if (board[fromRow][fromCol] != player || board[toRow][toCol] != EMPTY) {
+        std::cout << "Nieprawidłowy ruch!" << std::endl;
+        return false;
+    }
+
+    // Tutaj dodam inne warunki, takie jak sprawdzanie zbicia
+
+    return true; // Ruch jest poprawny
+}
+
 
 bool makeMove(std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player) {
     auto fromPos = parsePosition(from);
