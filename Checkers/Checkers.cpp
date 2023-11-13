@@ -33,15 +33,13 @@ int main() {
         // Wejście gracza
         std::cout << "Gracz " << (player1Turn ? "1 [x]" : "2 [o]") << " - podaj ruch (np. a3 b4): ";
         std::cin >> from >> to;
-
-        // Sprawdzenie czy ruch może zostać wykonany (jeżeli nie, pozwala na powtórzenie akcji
-        if (!isMoveValid(board, from, to, player1Turn ? PLAYER1 : PLAYER2)) {
-            std::cout << "Gracz " << (player1Turn ? "1 [x]" : "2 [o]") << " - podaj ruch (np. a3 b4): ";
-            continue;
+        if (makeMove(board, from, to, player1Turn ? PLAYER1 : PLAYER2)) {
+            player1Turn = !player1Turn; // Zmiana gracza tylko, jeśli ruch był poprawny
+        }
+        else {
+            std::cout << "Nieprawidłowy ruch! Spróbuj ponownie." << std::endl;
         }
 
-        // Wykonanie ruchu
-        makeMove(board, from, to, player1Turn ? PLAYER1 : PLAYER2);
         // Zmiana gracza
         player1Turn = !player1Turn;
     }
@@ -87,7 +85,7 @@ void printBoard(const std::vector<std::vector<char>>& board) {
 
 
 // Funkcja sprawdzająca poprawność ruchu w aktualnej sytuacji
-bool isMoveValid(std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player) {
+bool isMoveValid(const std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player) {
     auto fromPos = parsePosition(from);
     auto toPos = parsePosition(to);
 
@@ -96,26 +94,54 @@ bool isMoveValid(std::vector<std::vector<char>>& board, const std::string& from,
     int toRow = toPos.first;
     int toCol = toPos.second;
 
-    // Sprawdzanie, czy ruch jest na planszy
+    // Sprawdzenie, czy ruch jest na planszy
     if (fromRow < 0 || fromRow >= SIZE || fromCol < 0 || fromCol >= SIZE ||
         toRow < 0 || toRow >= SIZE || toCol < 0 || toCol >= SIZE) {
-        std::cout << "Ruch poza planszą!" << std::endl;
         return false;
     }
 
-    // Sprawdzanie, czy ruch jest na przemian
-    if (board[fromRow][fromCol] != player || board[toRow][toCol] != EMPTY) {
-        std::cout << "Nieprawidłowy ruch!" << std::endl;
+    // Sprawdzenie, czy ruch jest wykonany przez właściwego gracza
+    if (board[fromRow][fromCol] != player) {
         return false;
     }
 
-    // Tutaj dodam inne warunki, takie jak sprawdzanie zbicia
+    // Sprawdzenie, czy pole docelowe jest puste
+    if (board[toRow][toCol] != EMPTY) {
+        return false;
+    }
 
-    return true; // Ruch jest poprawny
+    int rowDiff = toRow - fromRow;
+    int colDiff = toCol - fromCol;
+
+    // Sprawdzenie, czy ruch jest po skosie
+    if (abs(rowDiff) != abs(colDiff)) {
+        return false;
+    }
+
+    // Sprawdzenie, czy ruch jest o maksymalnie jedno pole (dla zwykłego ruchu) lub o dwa (dla zbicia)
+    if (abs(rowDiff) > 2 || abs(colDiff) > 2) {
+        return false;
+    }
+
+    // Sprawdzenie możliwości zbicia
+    if (abs(rowDiff) == 2) {
+        int middleRow = (fromRow + toRow) / 2;
+        int middleCol = (fromCol + toCol) / 2;
+        char opponent = (player == PLAYER1) ? PLAYER2 : PLAYER1;
+
+        if (board[middleRow][middleCol] != opponent) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-
 bool makeMove(std::vector<std::vector<char>>& board, const std::string& from, const std::string& to, char player) {
+    if (!isMoveValid(board, from, to, player)) {
+        return false; // Ruch nie jest dozwolony
+    }
+
     auto fromPos = parsePosition(from);
     auto toPos = parsePosition(to);
 
@@ -124,24 +150,22 @@ bool makeMove(std::vector<std::vector<char>>& board, const std::string& from, co
     int toRow = toPos.first;
     int toCol = toPos.second;
 
-    // Sprawdzanie, czy ruch jest na planszy i czy wybrane pola są prawidłowe
-    if (fromRow < 0 || fromRow >= SIZE || fromCol < 0 || fromCol >= SIZE ||
-        toRow < 0 || toRow >= SIZE || toCol < 0 || toCol >= SIZE) {
-        return false;
+    // Sprawdzenie zbicia
+    int rowDiff = toRow - fromRow;
+    int colDiff = toCol - fromCol;
+
+    if (abs(rowDiff) == 2 && abs(colDiff) == 2) { // Zbicie
+        int middleRow = (fromRow + toRow) / 2;
+        int middleCol = (fromCol + toCol) / 2;
+        board[middleRow][middleCol] = EMPTY; // Usunięcie zbitego pionka
     }
 
-    // Sprawdzanie, czy ruch jest na przemian
-    if (board[fromRow][fromCol] != player || board[toRow][toCol] != EMPTY) {
-        return false;
-    }
-
-    // Aktualizacja planszy
+    // Przesunięcie pionka
     board[toRow][toCol] = player;
     board[fromRow][fromCol] = EMPTY;
 
     return true;
 }
-
 std::pair<int, int> parsePosition(const std::string& position) {
     if (position.length() != 2) return { -1, -1 };
 
